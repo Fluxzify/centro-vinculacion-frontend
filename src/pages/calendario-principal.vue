@@ -1,5 +1,8 @@
 <template>
+ <Header />
   <div class="min-h-screen bg-gray-100 p-6">
+     
+
     <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8">
       <h1 class="text-3xl font-bold mb-4">Bienvenido al Calendario Principal</h1>
       <p class="text-gray-700 mb-6">
@@ -8,6 +11,7 @@
 
       <!-- Calendario o listado de eventos -->
       <div class="space-y-4">
+      
         <div class="bg-blue-100 p-4 rounded-md">
           <h2 class="font-semibold text-lg">📅 Reunión con equipo</h2>
           <p class="text-gray-600">Lunes 24 de junio, 10:00 AM</p>
@@ -26,5 +30,6 @@
 </template>
 
 <script setup>
+import Header from '~/components/Header.vue'
 // Aquí más adelante puedes cargar eventos dinámicos si los tienes en tu backend
 </script>

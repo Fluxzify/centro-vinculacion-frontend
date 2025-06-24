@@ -1,54 +1,54 @@
 import { defineStore } from 'pinia'
+import { useCookie, useRuntimeConfig } from '#app'
+import { jwtDecode } from 'jwt-decode'
+type TokenPayload = {
+  nombre: string
+  userId: number
+  // agrega más campos si los tienes
+}
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    token: null as string | null
+    token: null as string | null,
+    nombre: null as string | null
   }),
 
   actions: {
     async login(email: string, password: string) {
+      const config = useRuntimeConfig()
       try {
         const data = await $fetch<{ token: string }>('/api/auth/login', {
           method: 'POST',
-          baseURL: 'https://proyecto-backend-centro-vinculacion-backend-production.up.railway.app',
+          baseURL: config.public.API_BASE_URL,
           body: { email, password },
           credentials: 'include'
         })
 
-        if (!data.token) {
-          throw new Error('Credenciales incorrectas')
-        }
+        if (!data.token) throw new Error('Credenciales incorrectas')
 
+        const tokenCookie = useCookie('token', { maxAge: 60 * 60 * 24 * 7 })
+        tokenCookie.value = data.token
         this.token = data.token
-        localStorage.setItem('token', this.token)
+
+        const payload = jwtDecode<TokenPayload>(tokenCookie.value)
+        this.nombre = payload.nombre
       } catch (error: any) {
-        if (error?.data?.message) {
-          throw new Error(error.data.message)
-        }
-        throw new Error('Credenciales incorrectas')
+        throw new Error(error?.data?.message || 'Credenciales incorrectas')
       }
     },
 
-    async register(nombre: string, email: string, password: string) {
-      try {
-        const data = await $fetch<{ token: string }>('/api/auth/register', {
-          method: 'POST',
-          baseURL: 'https://proyecto-backend-centro-vinculacion-backend-production.up.railway.app',
-          body: { nombre, email, password },
-          credentials: 'include'
-        })
+    logout() {
+      useCookie('token').value = null
+      this.token = null
+      this.nombre = null
+    },
 
-        if (!data.token) {
-          throw new Error('Credenciales incorrectas')
-        }
-
-        this.token = data.token
-        localStorage.setItem('token', this.token)
-      } catch (error: any) {
-        if (error?.data?.message) {
-          throw new Error(error.data.message)
-        }
-        throw new Error('Credenciales incorrectas')
+    restoreToken() {
+      const tokenCookie = useCookie('token')
+      if (tokenCookie.value && !this.token) {
+        this.token = tokenCookie.value
+        const payload = jwtDecode<TokenPayload>(tokenCookie.value)
+        this.nombre = payload.nombre
       }
     }
   }

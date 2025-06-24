@@ -13,11 +13,12 @@
         ¿Ya tienes cuenta?
         <NuxtLink to="/login" class="text-blue-600 hover:underline">Inicia sesión</NuxtLink>
       </p>
+
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useRouter } from 'vue-router'
@@ -32,11 +33,11 @@ const error = ref(null)
 
 const registrar = async () => {
   error.value = null
-  try {
-    await auth.register(nombre.value, email.value, password.value)
-    router.push('/calendarioPrincipal') // redirige a login al registrarse exitosamente
-  } catch (e) {
-    error.value = e.message
-  }
+ try {
+  await auth.register(nombre.value, email.value, password.value)
+  router.push('/calendario-principal')
+} catch (e: any) {
+  error.value = e.message
+}
 }
 </script>

@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+
+    --breakpoint-*: initial;
+    --breakpoint-sm: 576px;
+    /* Mobile (Small Mobile de tu spec, min-width) */
+    --breakpoint-md: 768px;
+    /* Tablet (Mobile de tu spec, min-width) */
+    --breakpoint-lg: 992px;
+    /* Laptop (Tablet de tu spec, min-width) */
+    --breakpoint-xl: 1200px;
+    /* Desktop (Laptop de tu spec, min-width) */
+    --breakpoint-2xl: 1400px;
+
+    --color-santotomasgreen: #1B5E20;
+    --color-santo-tomas-blue: #0D47A1;
+    --color-santo-tomas-yellow: #FBC02D;
+    --color-santo-tomas-red: #B71C1C;
+    --color-santo-tomas-gray: #9E9E9E;
+
+    --font-family-sans: 'Inter', sans-serif;
+    --font-family-serif: 'Merriweather', serif;
+    --font-family-mono: 'Courier New', monospace;
+
+    --font-size-base: 16px;
+    --font-size-lg: 18px;
+    --font-size-sm: 14px;
+
+    --line-height-base: 1.5;
+
+}
