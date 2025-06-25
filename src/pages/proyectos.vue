@@ -22,22 +22,22 @@
       ></textarea>
 
       <div class="mb-2">
-        <label for="fecha_inicio" class="block font-semibold mb-1">Fecha Inicio *</label>
+        <label for="fechaInicio" class="block font-semibold mb-1">Fecha Inicio *</label>
         <input
-          v-model="fecha_inicio"
+          v-model="fechaInicio"
           type="date"
-          id="fecha_inicio"
+          id="fechaInicio"
           class="border p-2 rounded w-full mb-2"
           required
         />
       </div>
 
       <div class="mb-4">
-        <label for="fecha_fin" class="block font-semibold mb-1">Fecha Fin</label>
+        <label for="fechaFin" class="block font-semibold mb-1">Fecha Fin</label>
         <input
-          v-model="fecha_fin"
+          v-model="fechaFin"
           type="date"
-          id="fecha_fin"
+          id="fechaFin"
           class="border p-2 rounded w-full mb-2"
         />
       </div>
@@ -68,19 +68,27 @@
 
     <p v-if="message" :class="messageClass" class="mb-4">{{ message }}</p>
 
-    <table class="w-full border-collapse border">
+   <table class="w-full border-collapse border">
       <thead>
         <tr class="bg-gray-100">
           <th class="border px-4 py-2 text-left">ID</th>
           <th class="border px-4 py-2 text-left">Nombre</th>
+          <th class="border px-4 py-2 text-left">Fecha Inicio</th>
+          <th class="border px-4 py-2 text-left">Fecha Fin</th>
           <th class="border px-4 py-2 text-left">Activo</th>
           <th class="border px-4 py-2">Acciones</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="proyecto in proyectos" :key="proyecto.id" :class="!proyecto.activo ? 'bg-red-50' : ''">
+        <tr
+          v-for="proyecto in proyectos"
+          :key="proyecto.id"
+          :class="!proyecto.activo ? 'bg-red-50' : ''"
+        >
           <td class="border px-4 py-2">{{ proyecto.id }}</td>
           <td class="border px-4 py-2">{{ proyecto.nombre }}</td>
+          <td class="border px-4 py-2">{{ formatDate(proyecto.fechaInicio) }}</td>
+          <td class="border px-4 py-2">{{ formatDate(proyecto.fechaFin) }}</td>
           <td class="border px-4 py-2">{{ proyecto.activo ? 'Sí' : 'No' }}</td>
           <td class="border px-4 py-2 text-center space-x-2">
             <button
@@ -99,7 +107,7 @@
           </td>
         </tr>
         <tr v-if="proyectos.length === 0">
-          <td colspan="4" class="text-center py-4">No hay proyectos registrados.</td>
+          <td colspan="6" class="text-center py-4">No hay proyectos registrados.</td>
         </tr>
       </tbody>
     </table>
@@ -116,12 +124,20 @@ const token = useCookie('token').value || ''
 const proyectos = ref([])
 const nombre = ref('')
 const descripcion = ref('')
-const fecha_inicio = ref('')
-const fecha_fin = ref('')
+const fechaInicio = ref('')
+const fechaFin = ref('')
 const activo = ref(true)
 const editId = ref(null)
 const message = ref('')
 const messageClass = ref('')
+
+// Función para formatear fecha ISO en yyyy-mm-dd (o ajusta a tu formato preferido)
+function formatDate(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  if (isNaN(date)) return ''
+  return date.toISOString().split('T')[0]
+}
 
 async function fetchProyectos() {
   try {
@@ -141,8 +157,8 @@ async function fetchProyectos() {
 function resetForm() {
   nombre.value = ''
   descripcion.value = ''
-  fecha_inicio.value = ''
-  fecha_fin.value = ''
+  fechaInicio.value = ''
+  fechaFin.value = ''
   activo.value = true
   editId.value = null
 }
@@ -150,8 +166,8 @@ function resetForm() {
 function startEdit(proyecto) {
   nombre.value = proyecto.nombre
   descripcion.value = proyecto.descripcion
-  fecha_inicio.value = proyecto.fecha_inicio
-  fecha_fin.value = proyecto.fecha_fin
+  fechaInicio.value = proyecto.fechaInicio
+  fechaFin.value = proyecto.fechaFin
   activo.value = proyecto.activo
   editId.value = proyecto.id
   message.value = ''
@@ -163,11 +179,14 @@ function cancelEdit() {
 }
 
 async function onSubmit() {
-  if (!nombre.value.trim() || !fecha_inicio.value) {
+  if (!nombre.value.trim() || !fechaInicio.value) {
     message.value = 'Nombre y fecha inicio son obligatorios'
     messageClass.value = 'text-red-600'
     return
   }
+
+  const fechaInicioISO = new Date(fechaInicio.value)
+  const fechaFinISO = fechaFin.value ? new Date(fechaFin.value) : null
 
   try {
     if (editId.value) {
@@ -180,8 +199,8 @@ async function onSubmit() {
         body: {
           nombre: nombre.value,
           descripcion: descripcion.value,
-          fecha_inicio: fecha_inicio.value,
-          fecha_fin: fecha_fin.value || null,
+          fechaInicio: fechaInicioISO,
+          fechaFin: fechaFinISO,
           activo: activo.value
         }
       })
@@ -196,8 +215,8 @@ async function onSubmit() {
         body: {
           nombre: nombre.value,
           descripcion: descripcion.value,
-          fecha_inicio: fecha_inicio.value,
-          fecha_fin: fecha_fin.value || null,
+          fechaInicio: fechaInicioISO,
+          fechaFin: fechaFinISO,
           activo: activo.value
         }
       })

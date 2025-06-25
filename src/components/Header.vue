@@ -52,6 +52,13 @@
             >
               Proyectos
             </NuxtLink>
+             <NuxtLink
+              to="/tipo-actividad"
+              class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white"
+              @click="closeDropdown"
+            >
+              Tipo de Actividad
+            </NuxtLink>
           </div>
         </div>
 
@@ -118,6 +125,14 @@ const cancelCloseDropdown = () => {
     clearTimeout(closeTimeout)
     closeTimeout = null
   }
+}
+
+const closeDropdown = () => {
+  if (closeTimeout) {
+    clearTimeout(closeTimeout)
+    closeTimeout = null
+  }
+  dropdownOpen.value = false
 }
 
 // Dropdown Usuario
