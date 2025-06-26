@@ -5,7 +5,7 @@
       <h1>Centro Integral Alerce - Gestión de Actividades</h1>
     </header>
 
-    <!-- Filtros Avanzados -->
+    <!-- Filtros -->
     <section id="filtros" class="filtros">
       <select v-model="filtroTipo" class="select-filtro">
         <option value="all">Todos los tipos</option>
@@ -13,12 +13,6 @@
         <option value="taller">Taller</option>
         <option value="actividad">Actividad</option>
       </select>
-
-      <select v-model="filtroUsuario" class="select-filtro">
-        <option value="all">Todos los usuarios</option>
-        <option v-for="usuario in usuarios" :key="usuario.id" :value="usuario.nombre">{{ usuario.nombre }}</option>
-      </select>
-
       <button @click="aplicarFiltros" class="btn btn-primary">Aplicar Filtros</button>
     </section>
 
@@ -43,10 +37,6 @@
         <input id="inicio" type="datetime-local" v-model="nuevoEvento.inicio" required class="input-text" />
         <label for="fin">Fin:</label>
         <input id="fin" type="datetime-local" v-model="nuevoEvento.fin" required class="input-text" />
-        <label>Usuario:</label>
-        <select v-model="nuevoEvento.usuario" class="select-filtro" required>
-          <option v-for="usuario in usuarios" :key="usuario.id" :value="usuario.nombre">{{ usuario.nombre }}</option>
-        </select>
         <div class="modal-buttons">
           <button type="submit" class="btn btn-success">Guardar</button>
           <button type="button" @click="cerrarModal" class="btn btn-secondary">Cancelar</button>
@@ -54,13 +44,12 @@
       </form>
     </div>
 
-    <!-- Modal Ver Detalle -->
+    <!-- Modal Detalle Evento -->
     <div v-if="eventoSeleccionado" class="modal-overlay" @click.self="eventoSeleccionado = null">
       <div class="modal-form">
         <h2>Detalle del Evento</h2>
         <p><strong>Título:</strong> {{ eventoSeleccionado.title }}</p>
         <p><strong>Tipo:</strong> {{ eventoSeleccionado.tipo }}</p>
-        <p><strong>Usuario:</strong> {{ eventoSeleccionado.usuario }}</p>
         <p><strong>Inicio:</strong> {{ eventoSeleccionado.start }}</p>
         <p><strong>Fin:</strong> {{ eventoSeleccionado.end || 'No definido' }}</p>
         <div class="modal-buttons">
@@ -83,17 +72,14 @@ const config = useRuntimeConfig();
 const token = useCookie('token').value || '';
 
 const filtroTipo = ref('all');
-const filtroUsuario = ref('all');
-const usuarios = ref([{ id: 1, nombre: 'Juan' }, { id: 2, nombre: 'Ana' }]);
-
 const mostrarModal = ref(false);
 const eventoSeleccionado = ref(null);
+
 const nuevoEvento = ref({
   titulo: '',
   tipo: 'reunion',
   inicio: '',
-  fin: '',
-  usuario: 'Juan'
+  fin: ''
 });
 
 const eventosOriginales = ref([]);
@@ -113,8 +99,7 @@ const calendarOptions = ref({
       title: info.event.title,
       start: info.event.startStr,
       end: info.event.endStr,
-      tipo: info.event.extendedProps.tipo,
-      usuario: info.event.extendedProps.usuario
+      tipo: info.event.extendedProps.tipo
     };
   },
   events: []
@@ -147,7 +132,6 @@ async function cargarEventos() {
       start: cita.fecha.slice(0, 10) + 'T' + cita.horaInicio,
       end: cita.horaFin ? cita.fecha.slice(0, 10) + 'T' + cita.horaFin : null,
       tipo: cita.actividad.tipo || 'actividad',
-      usuario: cita.usuario?.nombre || 'Juan',
       backgroundColor: obtenerColorPorTipo(cita.actividad.tipo || 'actividad'),
       borderColor: '#fff',
       textColor: '#fff'
@@ -161,11 +145,9 @@ async function cargarEventos() {
 }
 
 function aplicarFiltros() {
-  const filtrados = eventosOriginales.value.filter(evento => {
-    const coincideTipo = filtroTipo.value === 'all' || evento.tipo === filtroTipo.value;
-    const coincideUsuario = filtroUsuario.value === 'all' || evento.usuario === filtroUsuario.value;
-    return coincideTipo && coincideUsuario;
-  });
+  const filtrados = eventosOriginales.value.filter(evento =>
+    filtroTipo.value === 'all' || evento.tipo === filtroTipo.value
+  );
   calendarOptions.value.events = filtrados;
 }
 
@@ -175,7 +157,6 @@ function guardarEvento() {
     start: nuevoEvento.value.inicio,
     end: nuevoEvento.value.fin,
     tipo: nuevoEvento.value.tipo,
-    usuario: nuevoEvento.value.usuario,
     backgroundColor: obtenerColorPorTipo(nuevoEvento.value.tipo),
     borderColor: '#fff',
     textColor: '#fff'
@@ -191,8 +172,7 @@ function cerrarModal() {
     titulo: '',
     tipo: 'reunion',
     inicio: '',
-    fin: '',
-    usuario: 'Juan'
+    fin: ''
   };
 }
 
@@ -282,7 +262,6 @@ onMounted(() => {
   background-color: #FFFFFF;
   box-shadow: 0 0 10px #00000011;
   padding: 1rem;
-  font-family: 'Open Sans', Arial, sans-serif;
 }
 
 /* Modal */
