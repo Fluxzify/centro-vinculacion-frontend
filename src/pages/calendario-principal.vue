@@ -5,15 +5,24 @@
       <h1>Centro Integral Alerce - Gestión de Actividades</h1>
     </header>
 
-    <!-- Filtros -->
-    <section id="filtros" class="filtros">
+    <!-- Filtros y Controles -->
+    <section class="filtros">
       <select v-model="filtroTipo" class="select-filtro">
         <option value="all">Todos los tipos</option>
         <option value="reunion">Reunión</option>
         <option value="taller">Taller</option>
         <option value="actividad">Actividad</option>
       </select>
+
+      <select v-model="vistaActual" @change="cambiarVista" class="select-filtro">
+        <option value="timeGridWeek">Vista Semanal</option>
+        <option value="dayGridMonth">Vista Mensual</option>
+      </select>
+
       <button @click="aplicarFiltros" class="btn btn-primary">Aplicar Filtros</button>
+      <button @click="irAFecha('prev')" class="btn btn-secondary">← Anterior</button>
+      <button @click="irAFecha('today')" class="btn btn-secondary">Hoy</button>
+      <button @click="irAFecha('next')" class="btn btn-secondary">Siguiente →</button>
     </section>
 
     <!-- Calendario -->
@@ -33,10 +42,10 @@
           <option value="taller">Taller</option>
           <option value="actividad">Actividad</option>
         </select>
-        <label for="inicio">Inicio:</label>
-        <input id="inicio" type="datetime-local" v-model="nuevoEvento.inicio" required class="input-text" />
-        <label for="fin">Fin:</label>
-        <input id="fin" type="datetime-local" v-model="nuevoEvento.fin" required class="input-text" />
+        <label>Inicio:</label>
+        <input type="datetime-local" v-model="nuevoEvento.inicio" required class="input-text" />
+        <label>Fin:</label>
+        <input type="datetime-local" v-model="nuevoEvento.fin" required class="input-text" />
         <div class="modal-buttons">
           <button type="submit" class="btn btn-success">Guardar</button>
           <button type="button" @click="cerrarModal" class="btn btn-secondary">Cancelar</button>
@@ -72,6 +81,7 @@ const config = useRuntimeConfig();
 const token = useCookie('token').value || '';
 
 const filtroTipo = ref('all');
+const vistaActual = ref('timeGridWeek');
 const mostrarModal = ref(false);
 const eventoSeleccionado = ref(null);
 
@@ -86,7 +96,7 @@ const eventosOriginales = ref([]);
 
 const calendarOptions = ref({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-  initialView: 'timeGridWeek',
+  initialView: vistaActual.value,
   editable: true,
   selectable: true,
   dateClick(info) {
@@ -101,6 +111,14 @@ const calendarOptions = ref({
       end: info.event.endStr,
       tipo: info.event.extendedProps.tipo
     };
+  },
+  eventDrop(info) {
+    if (!confirm('¿Deseas mover este evento a otra fecha/hora?')) {
+      info.revert();
+    } else {
+      // Aquí podrías guardar los cambios en backend si es necesario
+      console.log('Evento movido:', info.event.startStr);
+    }
   },
   events: []
 });
@@ -168,13 +186,22 @@ function guardarEvento() {
 
 function cerrarModal() {
   mostrarModal.value = false;
-  nuevoEvento.value = {
-    titulo: '',
-    tipo: 'reunion',
-    inicio: '',
-    fin: ''
-  };
+  nuevoEvento.value = { titulo: '', tipo: 'reunion', inicio: '', fin: '' };
 }
+
+function cambiarVista() {
+  const calendarApi = calendario.value.getApi();
+  calendarApi.changeView(vistaActual.value);
+}
+
+function irAFecha(direccion) {
+  const calendarApi = calendario.value.getApi();
+  if (direccion === 'prev') calendarApi.prev();
+  else if (direccion === 'next') calendarApi.next();
+  else calendarApi.today();
+}
+
+const calendario = ref(null);
 
 onMounted(() => {
   cargarEventos();
@@ -201,6 +228,7 @@ onMounted(() => {
 
 .filtros {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1.5rem;
   align-items: center;
@@ -212,8 +240,8 @@ onMounted(() => {
   padding: 0.5rem 1rem;
   border: 1px solid #E9ECEF;
   border-radius: 6px;
-  color: #2C3E50;
   background-color: #FFFFFF;
+  color: #2C3E50;
 }
 
 .select-filtro:focus {
@@ -223,11 +251,11 @@ onMounted(() => {
 
 .btn {
   cursor: pointer;
-  font-family: 'Open Sans', Arial, sans-serif;
   font-size: 1rem;
   padding: 0.5rem 1.25rem;
   border-radius: 6px;
   border: none;
+  font-family: 'Open Sans', Arial, sans-serif;
 }
 
 .btn-primary {
@@ -239,15 +267,6 @@ onMounted(() => {
   background-color: #2E7D32;
 }
 
-.btn-success {
-  background-color: #28A745;
-  color: #FFFFFF;
-}
-
-.btn-success:hover {
-  background-color: #218838;
-}
-
 .btn-secondary {
   background-color: #7F8C8D;
   color: #FFFFFF;
@@ -255,6 +274,15 @@ onMounted(() => {
 
 .btn-secondary:hover {
   background-color: #5D6D7E;
+}
+
+.btn-success {
+  background-color: #28A745;
+  color: #FFFFFF;
+}
+
+.btn-success:hover {
+  background-color: #218838;
 }
 
 .calendar {
@@ -285,15 +313,12 @@ onMounted(() => {
   min-width: 320px;
   max-width: 500px;
   box-shadow: 0 0 15px #1B5E2099;
-  font-family: 'Open Sans', Arial, sans-serif;
-  color: #2C3E50;
 }
 
 .modal-form h2 {
   font-size: 1.75rem;
   margin-bottom: 1rem;
   color: #1B5E20;
-  font-weight: 700;
 }
 
 .input-text {
@@ -303,7 +328,6 @@ onMounted(() => {
   border: 1px solid #E9ECEF;
   border-radius: 6px;
   margin-bottom: 1rem;
-  outline: none;
   color: #2C3E50;
 }
 
