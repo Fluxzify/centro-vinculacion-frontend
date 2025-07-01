@@ -1,212 +1,238 @@
 <template>
-  <Header />
-  <div class="app-container">
-    <header class="header">
-      <h1>Centro Integral Alerce - Gestión de Actividades</h1>
-    </header>
-
-    <!-- Filtros y Controles -->
-    <section class="filtros">
-      <select v-model="filtroTipo" class="select-filtro">
-        <option value="all">Todos los tipos</option>
-        <option value="reunion">Reunión</option>
-        <option value="taller">Taller</option>
-        <option value="actividad">Actividad</option>
-      </select>
-
-      <select v-model="vistaActual" @change="cambiarVista" class="select-filtro">
-        <option value="timeGridWeek">Vista Semanal</option>
-        <option value="dayGridMonth">Vista Mensual</option>
-      </select>
-
-      <button @click="aplicarFiltros" class="btn btn-primary">Aplicar Filtros</button>
-      <button @click="irAFecha('prev')" class="btn btn-secondary">← Anterior</button>
-      <button @click="irAFecha('today')" class="btn btn-secondary">Hoy</button>
-      <button @click="irAFecha('next')" class="btn btn-secondary">Siguiente →</button>
-    </section>
-
-    <!-- Calendario -->
-    <FullCalendar
-      ref="calendario"
-      :options="calendarOptions"
-      class="calendar"
-    />
-
-    <!-- Modal Crear Evento -->
-    <div v-if="mostrarModal" class="modal-overlay" @click.self="cerrarModal">
-      <form @submit.prevent="guardarEvento" class="modal-form">
-        <h2>Nuevo Evento</h2>
-        <input v-model="nuevoEvento.titulo" placeholder="Título del evento" required class="input-text" />
-        <select v-model="nuevoEvento.tipo" class="select-filtro" required>
-          <option value="reunion">Reunión</option>
-          <option value="taller">Taller</option>
-          <option value="actividad">Actividad</option>
+    <Header />
+    <div class="app-container">
+      <header class="header">
+        <h1>Centro Integral Alerce - Gestión de Actividades</h1>
+      </header>
+  
+      <!-- Filtros y Controles -->
+      <section class="filtros">
+        <select v-model="filtroTipo" class="select-filtro">
+          <option value="all">Todos los tipos</option>
+          <option v-for="tipo in tiposDisponibles" :key="tipo" :value="tipo">
+            {{ tipo.charAt(0).toUpperCase() + tipo.slice(1) }}
+          </option>
         </select>
-        <label>Inicio:</label>
-        <input type="datetime-local" v-model="nuevoEvento.inicio" required class="input-text" />
-        <label>Fin:</label>
-        <input type="datetime-local" v-model="nuevoEvento.fin" required class="input-text" />
-        <div class="modal-buttons">
-          <button type="submit" class="btn btn-success">Guardar</button>
-          <button type="button" @click="cerrarModal" class="btn btn-secondary">Cancelar</button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Modal Detalle Evento -->
-    <div v-if="eventoSeleccionado" class="modal-overlay" @click.self="eventoSeleccionado = null">
-      <div class="modal-form">
-        <h2>Detalle del Evento</h2>
-        <p><strong>Título:</strong> {{ eventoSeleccionado.title }}</p>
-        <p><strong>Tipo:</strong> {{ eventoSeleccionado.tipo }}</p>
-        <p><strong>Inicio:</strong> {{ eventoSeleccionado.start }}</p>
-        <p><strong>Fin:</strong> {{ eventoSeleccionado.end || 'No definido' }}</p>
-        <div class="modal-buttons">
-          <button class="btn btn-secondary" @click="eventoSeleccionado = null">Cerrar</button>
+  
+        <select v-model="vistaActual" @change="cambiarVista" class="select-filtro">
+          <option value="timeGridWeek">Vista Semanal</option>
+          <option value="dayGridMonth">Vista Mensual</option>
+        </select>
+  
+        <button @click="aplicarFiltros" class="btn btn-primary">Aplicar Filtros</button>
+        <button @click="irAFecha('prev')" class="btn btn-secondary">← Anterior</button>
+        <button @click="irAFecha('today')" class="btn btn-secondary">Hoy</button>
+        <button @click="irAFecha('next')" class="btn btn-secondary">Siguiente →</button>
+      </section>
+  
+      <!-- Calendario -->
+      <FullCalendar
+        ref="calendario"
+        :options="calendarOptions"
+        class="calendar"
+      />
+  
+      <!-- Modal Crear Evento -->
+      <div v-if="mostrarModal" class="modal-overlay" @click.self="cerrarModal">
+        <form @submit.prevent="guardarEvento" class="modal-form">
+          <h2>Nuevo Evento</h2>
+          <input v-model="nuevoEvento.titulo" placeholder="Título del evento" required class="input-text" />
+          <select v-model="nuevoEvento.tipo" class="select-filtro" required>
+            <option v-for="tipo in tiposDisponibles" :key="tipo" :value="tipo">
+              {{ tipo.charAt(0).toUpperCase() + tipo.slice(1) }}
+            </option>
+          </select>
+          <label>Inicio:</label>
+          <input type="datetime-local" v-model="nuevoEvento.inicio" required class="input-text" />
+          <label>Fin:</label>
+          <input type="datetime-local" v-model="nuevoEvento.fin" required class="input-text" />
+          <div class="modal-buttons">
+            <button type="submit" class="btn btn-success">Guardar</button>
+            <button type="button" @click="cerrarModal" class="btn btn-secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
+  
+      <!-- Modal Detalle Evento -->
+      <div v-if="eventoSeleccionado" class="modal-overlay" @click.self="eventoSeleccionado = null">
+        <div class="modal-form">
+          <h2>Detalle del Evento</h2>
+          <p><strong>Título:</strong> {{ eventoSeleccionado.title }}</p>
+          <p><strong>Tipo:</strong> {{ eventoSeleccionado.tipo }}</p>
+          <p><strong>Inicio:</strong> {{ eventoSeleccionado.start }}</p>
+          <p><strong>Fin:</strong> {{ eventoSeleccionado.end || 'No definido' }}</p>
+          <div class="modal-buttons">
+            <button class="btn btn-secondary" @click="eventoSeleccionado = null">Cerrar</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</template>
-
-<script setup>
-import { ref, onMounted } from 'vue';
-import { useRuntimeConfig, useCookie } from '#app';
-import FullCalendar from '@fullcalendar/vue3';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
-
-const config = useRuntimeConfig();
-const token = useCookie('token').value || '';
-
-const filtroTipo = ref('all');
-const vistaActual = ref('timeGridWeek');
-const mostrarModal = ref(false);
-const eventoSeleccionado = ref(null);
-
-const nuevoEvento = ref({
-  titulo: '',
-  tipo: 'reunion',
-  inicio: '',
-  fin: ''
-});
-
-const eventosOriginales = ref([]);
-
-const calendarOptions = ref({
-  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-  initialView: vistaActual.value,
-  editable: true,
-  selectable: true,
-  dateClick(info) {
-    nuevoEvento.value.inicio = info.dateStr;
-    nuevoEvento.value.fin = info.dateStr;
-    mostrarModal.value = true;
-  },
-  eventClick(info) {
-    eventoSeleccionado.value = {
-      title: info.event.title,
-      start: info.event.startStr,
-      end: info.event.endStr,
-      tipo: info.event.extendedProps.tipo
-    };
-  },
-  eventDrop(info) {
-    if (!confirm('¿Deseas mover este evento a otra fecha/hora?')) {
-      info.revert();
-    } else {
-      // Aquí podrías guardar los cambios en backend si es necesario
-      console.log('Evento movido:', info.event.startStr);
+  </template>
+  
+  <script setup>
+  import { ref, onMounted } from 'vue'
+  import { useRuntimeConfig, useCookie } from '#app'
+  import FullCalendar from '@fullcalendar/vue3'
+  import dayGridPlugin from '@fullcalendar/daygrid'
+  import timeGridPlugin from '@fullcalendar/timegrid'
+  import interactionPlugin from '@fullcalendar/interaction'
+  
+  const config = useRuntimeConfig()
+  const token = useCookie('token').value || ''
+  
+  const filtroTipo = ref('all')
+  const vistaActual = ref('timeGridWeek')
+  const mostrarModal = ref(false)
+  const eventoSeleccionado = ref(null)
+  const calendario = ref(null)
+  const tiposActividad = ref([])
+  const tiposDisponibles = ref([])
+  
+  const nuevoEvento = ref({
+    titulo: '',
+    tipo: 'actividad',
+    inicio: '',
+    fin: ''
+  })
+  
+  const eventosOriginales = ref([])
+  
+  const calendarOptions = ref({
+    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+    initialView: vistaActual.value,
+    editable: true,
+    selectable: true,
+    dayMaxEvents: true,        // mostrar botón “+ más” si hay demasiados eventos
+    height: 'auto',            // ajustar altura automáticamente
+    dateClick(info) {
+      nuevoEvento.value.inicio = info.dateStr
+      nuevoEvento.value.fin = info.dateStr
+      mostrarModal.value = true
+    },
+    eventClick(info) {
+      eventoSeleccionado.value = {
+        title: info.event.title,
+        start: info.event.startStr,
+        end: info.event.endStr,
+        tipo: info.event.extendedProps.tipo
+      }
+    },
+    eventDrop(info) {
+      if (!confirm('¿Deseas mover este evento a otra fecha/hora?')) {
+        info.revert()
+      }
+    },
+    events: []
+  })
+  
+  function obtenerColorPorTipo(tipo) {
+    switch (tipo.toLowerCase()) {
+      case 'capacitacion': return '#1B5E20'
+      case 'taller': return '#2E7D32'
+      case 'charla': return '#66BB6A'
+      case 'atencion': return '#28A745'
+      case 'operativo': return '#FFC107'
+      case 'practica': return '#6F42C1'
+      case 'diagnostico': return '#FD7E14'
+      case 'reunion': return '#2C3E50'
+      default: return '#7F8C8D'
     }
-  },
-  events: []
-});
-
-function obtenerColorPorTipo(tipo) {
-  switch (tipo.toLowerCase()) {
-    case 'capacitacion': return '#1B5E20';
-    case 'taller': return '#2E7D32';
-    case 'charla': return '#66BB6A';
-    case 'atencion': return '#28A745';
-    case 'operativo': return '#FFC107';
-    case 'practica': return '#6F42C1';
-    case 'diagnostico': return '#FD7E14';
-    case 'reunion': return '#2C3E50';
-    default: return '#7F8C8D';
   }
-}
-
-async function cargarEventos() {
-  try {
-    const data = await $fetch('/api/citas', {
-      baseURL: config.public.API_BASE_URL,
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    const eventos = data.map(cita => ({
-      id: cita.id,
-      title: cita.actividad.nombre,
-      start: cita.fecha.slice(0, 10) + 'T' + cita.horaInicio,
-      end: cita.horaFin ? cita.fecha.slice(0, 10) + 'T' + cita.horaFin : null,
-      tipo: cita.actividad.tipo || 'actividad',
-      backgroundColor: obtenerColorPorTipo(cita.actividad.tipo || 'actividad'),
+  
+  // Carga tipos y eventos
+  async function cargarEventos() {
+    try {
+      const headers = { Authorization: `Bearer ${token}` }
+  
+      // 1. Traer todos los tipos para el filtro
+      tiposActividad.value = await $fetch('/api/tipos-actividad', {
+        baseURL: config.public.API_BASE_URL,
+        headers
+      })
+      tiposDisponibles.value = tiposActividad.value
+        .map(t => t.nombre.toLowerCase())
+        .sort()
+  
+      // 2. Traer citas
+      const data = await $fetch('/api/citas', {
+        baseURL: config.public.API_BASE_URL,
+        headers
+      })
+  
+      // Map id→nombre para tipo
+      const tipoMap = {}
+      tiposActividad.value.forEach(t => {
+        tipoMap[t.id] = t.nombre.toLowerCase()
+      })
+  
+      // Generar eventos
+      const eventos = data.map(cita => ({
+        id: cita.id,
+        title: cita.actividad.nombre,
+        start: `${cita.fecha.slice(0,10)}T${cita.horaInicio}`,
+        end: cita.horaFin ? `${cita.fecha.slice(0,10)}T${cita.horaFin}` : null,
+        tipo: tipoMap[cita.actividad.tipoActividadId] || 'actividad',
+        backgroundColor: obtenerColorPorTipo(tipoMap[cita.actividad.tipoActividadId] || ''),
+        borderColor: '#fff',
+        textColor: '#fff'
+      }))
+  
+      eventosOriginales.value = eventos
+  
+      // Refrescar calendario
+      const api = calendario.value.getApi()
+      api.removeAllEvents()
+      eventos.forEach(ev => api.addEvent(ev))
+  
+    } catch (error) {
+      console.error('Error cargando eventos:', error)
+    }
+  }
+  
+  function aplicarFiltros() {
+    const api = calendario.value.getApi()
+    api.removeAllEvents()
+    eventosOriginales.value
+      .filter(e => filtroTipo.value === 'all' || e.tipo === filtroTipo.value)
+      .forEach(ev => api.addEvent(ev))
+  }
+  
+  function guardarEvento() {
+    const nuevo = {
+      title: nuevoEvento.value.titulo,
+      start: nuevoEvento.value.inicio,
+      end: nuevoEvento.value.fin,
+      tipo: nuevoEvento.value.tipo,
+      backgroundColor: obtenerColorPorTipo(nuevoEvento.value.tipo),
       borderColor: '#fff',
       textColor: '#fff'
-    }));
-
-    eventosOriginales.value = eventos;
-    calendarOptions.value.events = eventos;
-  } catch (error) {
-    console.error('Error cargando citas:', error);
+    }
+    eventosOriginales.value.push(nuevo)
+    aplicarFiltros()
+    cerrarModal()
   }
-}
-
-function aplicarFiltros() {
-  const filtrados = eventosOriginales.value.filter(evento =>
-    filtroTipo.value === 'all' || evento.tipo === filtroTipo.value
-  );
-  calendarOptions.value.events = filtrados;
-}
-
-function guardarEvento() {
-  const nuevo = {
-    title: nuevoEvento.value.titulo,
-    start: nuevoEvento.value.inicio,
-    end: nuevoEvento.value.fin,
-    tipo: nuevoEvento.value.tipo,
-    backgroundColor: obtenerColorPorTipo(nuevoEvento.value.tipo),
-    borderColor: '#fff',
-    textColor: '#fff'
-  };
-  eventosOriginales.value.push(nuevo);
-  aplicarFiltros();
-  cerrarModal();
-}
-
-function cerrarModal() {
-  mostrarModal.value = false;
-  nuevoEvento.value = { titulo: '', tipo: 'reunion', inicio: '', fin: '' };
-}
-
-function cambiarVista() {
-  const calendarApi = calendario.value.getApi();
-  calendarApi.changeView(vistaActual.value);
-}
-
-function irAFecha(direccion) {
-  const calendarApi = calendario.value.getApi();
-  if (direccion === 'prev') calendarApi.prev();
-  else if (direccion === 'next') calendarApi.next();
-  else calendarApi.today();
-}
-
-const calendario = ref(null);
-
-onMounted(() => {
-  cargarEventos();
-});
-</script>
+  
+  function cerrarModal() {
+    mostrarModal.value = false
+    nuevoEvento.value = { titulo: '', tipo: 'actividad', inicio: '', fin: '' }
+  }
+  
+  function cambiarVista() {
+    calendario.value.getApi().changeView(vistaActual.value)
+  }
+  
+  function irAFecha(dir) {
+    const api = calendario.value.getApi()
+    if (dir === 'prev') api.prev()
+    else if (dir === 'next') api.next()
+    else api.today()
+  }
+  
+  onMounted(cargarEventos)
+  // Al reactivar el componente (ej. tras editar actividad), recarga eventos
+  import { onActivated } from 'vue'
+  onActivated(cargarEventos)
+  </script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans&family=Roboto&display=swap');
