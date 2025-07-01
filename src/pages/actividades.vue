@@ -139,9 +139,16 @@
     <tr class="bg-gray-100">
       <th class="border px-2 py-1">ID</th>
       <th class="border px-2 py-1">Nombre</th>
+      <th class="border px-2 py-1">Tipo</th>
       <th class="border px-2 py-1">Periodicidad</th>
+      <th class="border px-2 py-1">Fecha Inicio</th>
+      <th class="border px-2 py-1">Fecha Fin</th>
       <th class="border px-2 py-1">Cupo</th>
+      <th class="border px-2 py-1">Socio Comunitario</th>
+      <th class="border px-2 py-1">Proyecto</th>
       <th class="border px-2 py-1">Estado</th>
+      <th class="border px-2 py-1">Creado Por</th>
+      <th class="border px-2 py-1">Fecha Creación</th>
       <th class="border px-2 py-1">Archivos</th>
       <th class="border px-2 py-1">Acciones</th>
     </tr>
@@ -150,9 +157,17 @@
     <tr v-for="actividad in actividades" :key="actividad.id">
       <td class="border px-2 py-1">{{ actividad.id }}</td>
       <td class="border px-2 py-1">{{ actividad.nombre }}</td>
+      <td class="border px-2 py-1">{{ actividad.tipoActividad?.nombre || '-' }}</td>
       <td class="border px-2 py-1">{{ actividad.periodicidad }}</td>
-      <td class="border px-2 py-1">{{ actividad.cupo || '-' }}</td>
+      <td class="border px-2 py-1">{{ actividad.fechaInicio?.slice(0,10) }}</td>
+      <td class="border px-2 py-1">{{ actividad.fechaFin ? actividad.fechaFin.slice(0,10) : '-' }}</td>
+      <td class="border px-2 py-1">{{ actividad.cupo ?? '-' }}</td>
+      <td class="border px-2 py-1">{{ actividad.socioComunitario?.nombre || '-' }}</td>
+      <td class="border px-2 py-1">{{ actividad.proyecto?.nombre || '-' }}</td>
       <td class="border px-2 py-1">{{ actividad.estado }}</td>
+      <td class="border px-2 py-1">{{ actividad.creadoPorId }}</td>
+      <td class="border px-2 py-1">{{ actividad.fechaCreacion?.slice(0,10) }}</td>
+
       <td class="border px-2 py-1 text-center">
         <div v-if="actividad.archivos && actividad.archivos.length > 0">
           <div v-for="archivo in actividad.archivos" :key="archivo.id" class="mb-1">
@@ -168,13 +183,15 @@
         </div>
         <span v-else class="text-gray-400">Sin archivos</span>
       </td>
+
       <td class="border px-2 py-1 text-center space-x-1">
         <button @click="startEdit(actividad)" class="text-blue-600 hover:underline">Editar</button>
         <button @click="deactivateActividad(actividad.id)" class="text-red-600 hover:underline">Cancelar</button>
       </td>
     </tr>
+
     <tr v-if="actividades.length === 0">
-      <td colspan="7" class="text-center py-4 text-gray-500">No hay actividades registradas.</td>
+      <td colspan="14" class="text-center py-4 text-gray-500">No hay actividades registradas.</td>
     </tr>
   </tbody>
 </table>

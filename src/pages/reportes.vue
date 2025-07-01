@@ -261,7 +261,7 @@ async function descargarReporte(formato = 'pdf') {
       <button v-if="actividades.length" @click="descargarReporte('csv')" class="btn btn-secondary" :disabled="loading">CSV</button>
     </section>
 
-    <section class="resultados">
+   <section class="resultados">
       <table class="tabla-reportes table-result" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr>
@@ -282,12 +282,10 @@ async function descargarReporte(formato = 'pdf') {
             <td colspan="6" style="text-align: center;">No hay resultados</td>
           </tr>
           <tr v-else v-for="actividad in actividades" :key="actividad.id">
-            <td>{{ actividad.id }}</td>
             <td>{{ actividad.fecha }}</td>
             <td>{{ actividad.lugar }}</td>
             <td>{{ actividad.oferente }}</td>
             <td>{{ actividad.tipo }}</td>
-            <td>{{ actividad.nombreActividad }}</td>
           </tr>
         </tbody>
       </table>
