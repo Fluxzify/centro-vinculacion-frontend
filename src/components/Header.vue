@@ -12,6 +12,11 @@
           Calendario
         </NuxtLink>
 
+        <!-- Nueva opción: Reportes -->
+        <NuxtLink to="/reportes" class="text-white hover:underline">
+          Reportes
+        </NuxtLink>
+
         <!-- Dropdown Mantenedores -->
         <div
           class="relative"
@@ -45,14 +50,14 @@
             >
               Actividades
             </NuxtLink>
-             <NuxtLink
+            <NuxtLink
               to="/proyectos"
               class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white"
               @click="closeDropdown"
             >
               Proyectos
             </NuxtLink>
-             <NuxtLink
+            <NuxtLink
               to="/tipo-actividad"
               class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white"
               @click="closeDropdown"
