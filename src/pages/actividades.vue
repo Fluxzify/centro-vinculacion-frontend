@@ -262,6 +262,7 @@ function formatDate(dateStr) {
 
 async function fetchAllData() {
   try {
+    console.log(actividades.value)
     const headers = { Authorization: `Bearer ${token}` }
     actividades.value = await $fetch('/api/activities', { baseURL: config.public.API_BASE_URL, headers })
     tiposActividad.value = await $fetch('/api/tipos-actividad', { baseURL: config.public.API_BASE_URL, headers })
@@ -357,7 +358,37 @@ async function deactivateActividad(id) {
 
 
 async function onSubmit() {
+
+  if (!editId.value) {
+  if (!form.value.fecha_unica_cita || !form.value.lugar_id_cita || !form.value.hora_inicio_cita) {
+    message.value = 'Lugar, Fecha y Hora Inicio son obligatorios para la cita.';
+    messageClass.value = 'bg-red-100 text-red-800';
+    return;
+  }
+
+  if (form.value.periodicidad === 'Periódica' && !form.value.fecha_fin_periodica_citas) {
+    message.value = 'Debes indicar una fecha fin para citas periódicas.';
+    messageClass.value = 'bg-red-100 text-red-800';
+    return;
+  }
+
+  if (
+    form.value.periodicidad === 'Periódica' &&
+    new Date(form.value.fecha_unica_cita) > new Date(form.value.fecha_fin_periodica_citas)
+  ) {
+    message.value = 'La fecha de fin no puede ser anterior a la fecha de inicio.';
+    messageClass.value = 'bg-red-100 text-red-800';
+    return;
+  }
+
+  if (!userId.value) {
+    message.value = 'No se pudo obtener el usuario creador. Inicia sesión nuevamente.';
+    messageClass.value = 'bg-red-100 text-red-800';
+    return;
+  }
+}
   try {
+
     const actividadPayload = {
       nombre: form.value.nombre,
       tipoActividadId: Number(form.value.tipo_actividad_id),
@@ -394,6 +425,38 @@ async function onSubmit() {
     throw new Error('La actividad no se creó correctamente. ID inválido.')
   }
 }
+if (!editId.value && actividadResult?.id) {
+  const citaPayload = {
+    actividadId: actividadResult.id,
+    lugarId: Number(form.value.lugar_id_cita),
+    fecha: form.value.fecha_unica_cita,
+    horaInicio: form.value.hora_inicio_cita,
+    horaFin: form.value.hora_fin_cita || null,
+    creadoPorId: userId.value,
+    periodicidadTipo: form.value.periodicidad
+  }
+
+  if (form.value.periodicidad === 'Puntual') {
+    await $fetch('/api/citas', {
+      method: 'POST',
+      baseURL: config.public.API_BASE_URL,
+      headers: { Authorization: `Bearer ${token}` },
+      body: citaPayload
+    })
+  } else if (form.value.periodicidad === 'Periódica') {
+    await $fetch('/api/citas', {
+      method: 'POST',
+      baseURL: config.public.API_BASE_URL,
+      headers: { Authorization: `Bearer ${token}` },
+      body: {
+        ...citaPayload,
+        fechaInicioPeriodica: form.value.fecha_unica_cita,
+        fechaFinPeriodica: form.value.fecha_fin_periodica_citas
+      }
+    })
+  }
+}
+
 
     // Subir archivos si hay alguno cargado
     if (fileInput.value && fileInput.value.files.length > 0) {
