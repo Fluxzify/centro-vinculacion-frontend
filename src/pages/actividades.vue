@@ -281,6 +281,7 @@ function resetForm() {
 
 // ✅ Método para editar actividad
 async function startEdit(actividad) {
+  console.log(actividad.citas)
   form.value = {
     nombre: actividad.nombre,
     tipo_actividad_id: actividad.tipoActividadId,
@@ -351,9 +352,11 @@ async function onSubmit() {
       cupo: form.value.cupo ? Number(form.value.cupo) : null,
       estado: form.value.estado
     }
-const actividadIdFinal = editId.value || actividadResult.id
+
     let actividadResult
+
     if (editId.value) {
+      // Editar actividad existente
       actividadResult = await $fetch(`/api/activities/${editId.value}`, {
         method: 'PUT',
         baseURL: config.public.API_BASE_URL,
@@ -361,37 +364,43 @@ const actividadIdFinal = editId.value || actividadResult.id
         body: actividadPayload
       })
     } else {
-      const res = await $fetch('/api/activities', {
-        method: 'POST',
-        baseURL: config.public.API_BASE_URL,
-        headers: { Authorization: `Bearer ${token}` },
-        body: actividadPayload
-      })
-      actividadResult = res.actividad
-    }
+  const res = await $fetch('/api/activities', {
+    method: 'POST',
+    baseURL: config.public.API_BASE_URL,
+    headers: { Authorization: `Bearer ${token}` },
+    body: actividadPayload
+  })
+  actividadResult = res.actividad
 
+  // 🔐 Validación adicional
+  if (!actividadResult || !actividadResult.id || isNaN(actividadResult.id)) {
+    throw new Error('La actividad no se creó correctamente. ID inválido.')
+  }
+}
+
+    // Subir archivos si hay alguno cargado
     if (fileInput.value && fileInput.value.files.length > 0) {
       const formData = new FormData()
       for (const file of fileInput.value.files) {
         formData.append('files', file)
       }
 
-  const uploadRes = await fetch(`${config.public.API_BASE_URL}api/files/${actividadIdFinal}`, {
-  method: 'POST',
-  headers: { Authorization: `Bearer ${token}` },
-  body: formData
-})
-     if (!uploadRes.ok) {
-  const error = await uploadRes.json()
-  throw new Error(error.error || 'Error al subir archivo')
-}
+      const uploadRes = await fetch(`${config.public.API_BASE_URL}api/files/${actividadResult.id}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      })
 
-const uploadData = await uploadRes.json()
+      if (!uploadRes.ok) {
+        const error = await uploadRes.json()
+        throw new Error(error.error || 'Error al subir archivos')
+      }
 
-message.value = uploadData.mensaje || uploadData.message || 'Archivo(s) adjuntado(s) exitosamente'
-messageClass.value = 'bg-green-100 text-green-800'
+      const uploadData = await uploadRes.json()
 
-      message.value = 'Archivo(s) adjuntado(s) exitosamente'
+      message.value = uploadData.mensaje || uploadData.message || 'Archivo(s) adjuntado(s) exitosamente'
       messageClass.value = 'bg-green-100 text-green-800'
     } else {
       message.value = 'Actividad guardada correctamente'
@@ -399,17 +408,17 @@ messageClass.value = 'bg-green-100 text-green-800'
     }
 
     setTimeout(() => {
-  resetForm()
-  fetchAllData()
-}, 2000)
+      resetForm()
+      fetchAllData()
+    }, 2000)
+
     await fetchAllData()
+
   } catch (error) {
     console.error('Error al enviar:', error)
     message.value = error.message || 'Error en la operación'
     messageClass.value = 'bg-red-100 text-red-800'
   }
-
-  
 }
 
 

@@ -1,49 +1,50 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useCookie, useRuntimeConfig } from '#app'
 import { useAuthStore } from '~/stores/auth'
+import { NuxtLink } from '#components'
 
-const config = useRuntimeConfig()
 const auth = useAuthStore()
+const config = useRuntimeConfig()
+const token = useCookie('token').value || ''
 
-// Dropdown Mantenedores
+// Dropdowns
 const dropdownOpen = ref(false)
 let closeTimeout = null
-const openDropdown = () => {
-  if (userOpen.value) userOpen.value = false
-  if (closeTimeout) clearTimeout(closeTimeout)
+function openDropdown() {
+  userOpen.value = false
+  clearTimeout(closeTimeout)
   dropdownOpen.value = true
 }
-const closeDropdownWithDelay = () => {
+function closeDropdownWithDelay() {
+  clearTimeout(closeTimeout)
   closeTimeout = setTimeout(() => {
     dropdownOpen.value = false
-    closeTimeout = null
   }, 300)
 }
-const cancelCloseDropdown = () => {
-  if (closeTimeout) clearTimeout(closeTimeout)
+function cancelCloseDropdown() {
+  clearTimeout(closeTimeout)
 }
-const closeDropdown = () => {
-  if (closeTimeout) clearTimeout(closeTimeout)
+function closeDropdown() {
+  clearTimeout(closeTimeout)
   dropdownOpen.value = false
 }
 
-// Dropdown Usuario
 const userOpen = ref(false)
 let userCloseTimeout = null
-const openUserDropdown = () => {
-  if (dropdownOpen.value) dropdownOpen.value = false
-  if (userCloseTimeout) clearTimeout(userCloseTimeout)
+function openUserDropdown() {
+  dropdownOpen.value = false
+  clearTimeout(userCloseTimeout)
   userOpen.value = true
 }
-const closeUserDropdownWithDelay = () => {
+function closeUserDropdownWithDelay() {
+  clearTimeout(userCloseTimeout)
   userCloseTimeout = setTimeout(() => {
     userOpen.value = false
-    userCloseTimeout = null
   }, 300)
 }
-const cancelCloseUserDropdown = () => {
-  if (userCloseTimeout) clearTimeout(userCloseTimeout)
+function cancelCloseUserDropdown() {
+  clearTimeout(userCloseTimeout)
 }
 function logout() {
   auth.logout()
@@ -51,42 +52,77 @@ function logout() {
 }
 
 // Reportes
-const fechaInicio  = ref('')
-const fechaFin     = ref('')
-const actividades  = ref([])
-const error        = ref('')
-const loading      = ref(false)
+const fechaInicio     = ref('')
+const fechaFin        = ref('')
+const lugarFiltro     = ref('')
+const oferenteFiltro  = ref('')
+const tipoFiltro      = ref('')
+const actividades     = ref([])
+const error           = ref('')
+const loading         = ref(false)
 
-async function fetchActividades() {
-  error.value   = ''
-  loading.value = true
+// Datos para selects
+const lugares   = ref([])
+const oferentes = ref([])
+const tipos     = ref([])
 
-  if (!fechaInicio.value || !fechaFin.value) {
-    error.value   = 'Debes ingresar fecha inicio y fin'
-    loading.value = false
+async function cargarCombos() {
+  if (!token) {
+    error.value = 'No tienes token de sesión. Por favor inicia sesión.'
     return
   }
 
-  const token = useCookie('token').value || ''
-  if (!token) {
-    error.value   = 'No tienes token de sesión. Por favor inicia sesión.'
+  try {
+    const [lugaresData, oferentesData, tiposData] = await Promise.all([
+      $fetch('/api/lugares', {
+        baseURL: config.public.API_BASE_URL,
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      $fetch('/api/oferentes', {
+        baseURL: config.public.API_BASE_URL,
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      $fetch('/api/tipos-actividad', {
+        baseURL: config.public.API_BASE_URL,
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+    ])
+
+    lugares.value = lugaresData
+    oferentes.value = oferentesData
+    tipos.value = tiposData
+  } catch (e) {
+    error.value = e.message || 'Error al cargar datos'
+  }
+}
+
+onMounted(() => {
+  cargarCombos()
+})
+
+async function fetchActividades() {
+  error.value = ''
+  loading.value = true
+
+  if (!fechaInicio.value || !fechaFin.value) {
+    error.value = 'Debes ingresar fecha inicio y fin'
     loading.value = false
     return
   }
 
   try {
-    const headers = { Authorization: `Bearer ${token}` }
-    const query = {
+    const params = new URLSearchParams({
       fechaInicio: fechaInicio.value,
       fechaFin: fechaFin.value,
-      formato: 'json'
-    }
+      formato: 'json',
+      lugar: lugarFiltro.value,
+      oferente: oferenteFiltro.value,
+      tipo: tipoFiltro.value
+    })
 
-    const data = await $fetch('/api/reportes/actividades', {
+    const data = await $fetch(`/api/reportes/actividades?${params}`, {
       baseURL: config.public.API_BASE_URL,
-      method: 'GET',
-      headers,
-      query
+      headers: { Authorization: `Bearer ${token}` }
     })
 
     actividades.value = Array.isArray(data) ? data : []
@@ -98,35 +134,28 @@ async function fetchActividades() {
 }
 
 async function descargarReporte(formato = 'pdf') {
-  error.value   = ''
+  error.value = ''
   loading.value = true
 
   if (!fechaInicio.value || !fechaFin.value) {
-    error.value   = 'Debes ingresar fecha inicio y fin'
-    loading.value = false
-    return
-  }
-
-  const token = useCookie('token').value || ''
-  if (!token) {
-    error.value   = 'No tienes token de sesión. Por favor inicia sesión.'
+    error.value = 'Debes ingresar fecha inicio y fin'
     loading.value = false
     return
   }
 
   try {
-    const headers = { Authorization: `Bearer ${token}` }
-    const query = {
+    const params = new URLSearchParams({
       fechaInicio: fechaInicio.value,
       fechaFin: fechaFin.value,
-      formato
-    }
+      formato,
+      lugar: lugarFiltro.value,
+      oferente: oferenteFiltro.value,
+      tipo: tipoFiltro.value
+    })
 
-    const blob = await $fetch('/api/reportes/actividades', {
+    const blob = await $fetch(`/api/reportes/actividades?${params}`, {
       baseURL: config.public.API_BASE_URL,
-      method: 'GET',
-      headers,
-      query,
+      headers: { Authorization: `Bearer ${token}` },
       responseType: 'blob'
     })
 
@@ -139,7 +168,7 @@ async function descargarReporte(formato = 'pdf') {
     a.remove()
     URL.revokeObjectURL(url)
   } catch (e) {
-    error.value = e.message || 'Error al descargar reporte'
+    error.value = e.message || 'Error al descargar el reporte'
   } finally {
     loading.value = false
   }
@@ -157,12 +186,9 @@ async function descargarReporte(formato = 'pdf') {
         </NuxtLink>
       </h1>
       <nav class="flex items-center space-x-6 font-open-sans relative">
-        <NuxtLink to="/calendario-principal" class="text-white hover:underline">
-          Calendario
-        </NuxtLink>
-        <NuxtLink to="/reportes" class="text-white hover:underline">
-          Reportes
-        </NuxtLink>
+        <NuxtLink to="/calendario-principal" class="text-white hover:underline">Calendario</NuxtLink>
+        <NuxtLink to="/reportes" class="text-white hover:underline">Reportes</NuxtLink>
+
         <div class="relative" @mouseenter="openDropdown" @mouseleave="closeDropdownWithDelay">
           <button class="text-white hover:underline flex items-center">
             Mantenedores
@@ -170,14 +196,19 @@ async function descargarReporte(formato = 'pdf') {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          <div v-show="dropdownOpen" class="absolute right-0 mt-2 w-56 bg-white text-black rounded shadow-lg z-10"
-               @mouseenter="cancelCloseDropdown" @mouseleave="closeDropdownWithDelay">
+          <div
+            v-show="dropdownOpen"
+            class="absolute right-0 mt-2 w-56 bg-white text-black rounded shadow-lg z-10"
+            @mouseenter="cancelCloseDropdown"
+            @mouseleave="closeDropdownWithDelay"
+          >
             <NuxtLink to="/socios-comunitarios" class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white" @click="closeDropdown">Socios Comunitarios</NuxtLink>
             <NuxtLink to="/actividades" class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white" @click="closeDropdown">Actividades</NuxtLink>
             <NuxtLink to="/proyectos" class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white" @click="closeDropdown">Proyectos</NuxtLink>
             <NuxtLink to="/tipo-actividad" class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white" @click="closeDropdown">Tipo de Actividad</NuxtLink>
           </div>
         </div>
+
         <div class="relative" @mouseenter="openUserDropdown" @mouseleave="closeUserDropdownWithDelay">
           <button class="flex items-center text-white hover:underline">
             Usuario
@@ -185,8 +216,12 @@ async function descargarReporte(formato = 'pdf') {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </button>
-          <div v-show="userOpen" class="absolute right-0 mt-2 w-48 bg-white text-black rounded shadow-lg z-10"
-               @mouseenter="cancelCloseUserDropdown" @mouseleave="closeUserDropdownWithDelay">
+          <div
+            v-show="userOpen"
+            class="absolute right-0 mt-2 w-48 bg-white text-black rounded shadow-lg z-10"
+            @mouseenter="cancelCloseUserDropdown"
+            @mouseleave="closeUserDropdownWithDelay"
+          >
             <div class="px-4 py-3 border-b text-sm text-gray-700">Sesión iniciada</div>
             <button class="w-full text-left px-6 py-3 hover:bg-red-600 hover:text-white" @click="logout">Cerrar sesión</button>
           </div>
@@ -204,143 +239,144 @@ async function descargarReporte(formato = 'pdf') {
     <section class="filtros">
       <input type="date" v-model="fechaInicio" class="select-filtro" />
       <input type="date" v-model="fechaFin" class="select-filtro" />
+
+      <select v-model="lugarFiltro" class="select-filtro">
+        <option value="">Todos los lugares</option>
+        <option v-for="l in lugares" :key="l.id || l" :value="l.nombre || l">{{ l.nombre || l }}</option>
+      </select>
+
+      <select v-model="oferenteFiltro" class="select-filtro">
+        <option value="">Todos los oferentes</option>
+        <option v-for="o in oferentes" :key="o.id || o" :value="o.nombre || o">{{ o.nombre || o }}</option>
+      </select>
+
+      <select v-model="tipoFiltro" class="select-filtro">
+        <option value="">Todos los tipos</option>
+        <option v-for="t in tipos" :key="t.id || t" :value="t.nombre || t">{{ t.nombre || t }}</option>
+      </select>
+
       <button @click="fetchActividades" :disabled="loading" class="btn btn-primary">Buscar</button>
       <button v-if="actividades.length" @click="descargarReporte('pdf')" class="btn btn-secondary" :disabled="loading">PDF</button>
       <button v-if="actividades.length" @click="descargarReporte('xlsx')" class="btn btn-secondary" :disabled="loading">Excel</button>
       <button v-if="actividades.length" @click="descargarReporte('csv')" class="btn btn-secondary" :disabled="loading">CSV</button>
     </section>
 
-    <p v-if="error" class="text-error">{{ error }}</p>
-
-    <div v-if="actividades.length" class="tabla-container">
-      <table class="table-result">
+    <section class="resultados">
+      <table class="tabla-reportes table-result" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr>
             <th>Fecha</th>
-            <th>Título</th>
-            <th>Tipo</th>
             <th>Lugar</th>
             <th>Oferente</th>
+            <th>Tipo</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="act in actividades" :key="act.id">
-            <td>{{ act.fecha }}</td>
-            <td>{{ act.titulo }}</td>
-            <td>{{ act.tipo }}</td>
-            <td>{{ act.lugar }}</td>
-            <td>{{ act.oferente }}</td>
+          <tr v-if="error">
+            <td colspan="6" class="text-error">{{ error }}</td>
+          </tr>
+          <tr v-else-if="loading">
+            <td colspan="6" style="text-align: center;">Cargando...</td>
+          </tr>
+          <tr v-else-if="!loading && actividades.length === 0">
+            <td colspan="6" style="text-align: center;">No hay resultados</td>
+          </tr>
+          <tr v-else v-for="actividad in actividades" :key="actividad.id">
+            <td>{{ actividad.id }}</td>
+            <td>{{ actividad.fecha }}</td>
+            <td>{{ actividad.lugar }}</td>
+            <td>{{ actividad.oferente }}</td>
+            <td>{{ actividad.tipo }}</td>
+            <td>{{ actividad.nombreActividad }}</td>
           </tr>
         </tbody>
       </table>
-    </div>
+    </section>
   </div>
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans&family=Roboto&display=swap');
-
-.bg-santotomasgreen { background-color: #1B5E20; }
-.font-roboto { font-family: 'Roboto', sans-serif; }
-.font-open-sans { font-family: 'Open Sans', sans-serif; }
-
 .app-container {
-  font-family: 'Roboto', Arial, sans-serif;
-  color: #2C3E50;
-  background-color: #E8F5E8;
-  min-height: 100vh;
-  padding: 1rem 2rem;
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 0 1rem;
 }
 
 .header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 1.5rem;
-  color: #1B5E20;
+  margin-bottom: 1rem;
+  font-family: 'Open Sans', sans-serif;
   font-weight: 700;
+  font-size: 1.8rem;
 }
 
 .filtros {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 1.5rem;
-  align-items: center;
-}
-
-.select-filtro {
-  font-family: 'Open Sans', Arial, sans-serif;
-  font-size: 1rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid #E9ECEF;
-  border-radius: 6px;
-  background-color: #FFFFFF;
-  color: #2C3E50;
-}
-
-.select-filtro:focus {
-  border-color: #1B5E20;
-  box-shadow: 0 0 5px #1B5E20AA;
-}
-
-.btn {
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0.5rem 1.25rem;
-  border-radius: 6px;
-  border: none;
-  font-family: 'Open Sans', Arial, sans-serif;
-}
-
-.btn-primary {
-  background-color: #1B5E20;
-  color: #FFFFFF;
-}
-
-.btn-primary:hover {
-  background-color: #2E7D32;
-}
-
-.btn-secondary {
-  background-color: #7F8C8D;
-  color: #FFFFFF;
-}
-
-.btn-secondary:hover {
-  background-color: #5D6D7E;
-}
-
-.text-error {
-  color: #dc2626;
   margin-bottom: 1rem;
 }
 
-.tabla-container {
-  background: #FFFFFF;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  padding: 1rem;
+.select-filtro {
+  flex: 1 1 150px;
+  padding: 0.4rem 0.6rem;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  border-radius: 5px;
+  border: 1px solid #ccc;
 }
 
-.table-result {
-  width: 100%;
-  border-collapse: collapse;
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.btn-secondary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #0069d9;
+}
+
+.btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.resultados {
+  margin-top: 2rem;
 }
 
 .table-result th,
 .table-result td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #E9ECEF;
-  text-align: left;
-}
-
-.table-result thead {
-  background-color: #F1F8F1;
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
 }
 
 .table-result th {
-  color: #1B5E20;
+  background-color: #f8f9fa;
   font-weight: 600;
+  text-align: left;
 }
 
-/* Dropdown styles are inherited from header code */
+.text-error {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+}
 </style>

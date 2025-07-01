@@ -64,6 +64,20 @@
             >
               Tipo de Actividad
             </NuxtLink>
+             <NuxtLink
+              to="/oferentes"
+              class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white"
+              @click="closeDropdown"
+            >
+              Oferentes
+            </NuxtLink>
+               <NuxtLink
+              to="/lugares"
+              class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white"
+              @click="closeDropdown"
+            >
+              Lugares
+            </NuxtLink>
           </div>
         </div>
 

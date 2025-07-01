@@ -2,6 +2,7 @@
   <div class="min-h-screen flex items-center justify-center bg-gray-100">
     <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
       <h2 class="text-2xl font-bold text-center mb-6">Recuperar contraseña</h2>
+      
       <form @submit.prevent="enviarCorreo">
         <input
           v-model="email"
@@ -16,18 +17,31 @@
           Enviar correo de recuperación
         </button>
       </form>
+
       <p v-if="mensaje" class="text-green-600 text-center mt-4">{{ mensaje }}</p>
       <p v-if="error" class="text-red-600 text-center mt-4">{{ error }}</p>
+
+      <button
+        @click="volverAlLogin"
+        class="mt-6 w-full text-center text-blue-600 hover:underline"
+      >
+        Volver al inicio de sesión
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useRuntimeConfig } from '#app'
 
 const email = ref('')
 const mensaje = ref('')
 const error = ref('')
+
+const router = useRouter()
+const config = useRuntimeConfig()
 
 const enviarCorreo = async () => {
   mensaje.value = ''
@@ -39,17 +53,19 @@ const enviarCorreo = async () => {
   }
 
   try {
-    const config = useRuntimeConfig()
-
-await $fetch('/api/auth/forgot-password', {
-  method: 'POST',
-  baseURL: config.public.API_BASE_URL,
-  body: { email: email.value },
-  credentials: 'include'
-})
+    await $fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      baseURL: config.public.API_BASE_URL,
+      body: { email: email.value },
+      credentials: 'include'
+    })
     mensaje.value = 'Se ha enviado un correo con instrucciones'
   } catch (e) {
     error.value = e?.data?.error || 'No se pudo enviar el correo'
   }
+}
+
+const volverAlLogin = () => {
+  router.push('/login')
 }
 </script>
