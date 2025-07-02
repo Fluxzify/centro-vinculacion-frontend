@@ -139,6 +139,20 @@ function convertirANombreLegible(permiso) {
   return permiso.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
+async function fetchPermisosUsuario(usuarioId) {
+  try {
+    const data = await $fetch(`/api/permisousuario/${usuarioId}`, {
+      baseURL: config.public.API_BASE_URL,
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    return data.map(pu => pu.permiso)
+  } catch {
+    message.value = 'Error cargando permisos del usuario'
+    messageClass.value = 'text-red-600'
+    return []
+  }
+}
+
 function resetForm() {
   nombre.value = ''
   email.value = ''
@@ -147,12 +161,14 @@ function resetForm() {
   permisosSeleccionados.value = []
 }
 
-function startEdit(usuario) {
+async function startEdit(usuario) {
   nombre.value = usuario.nombre
   email.value = usuario.email
   password.value = ''
   editId.value = usuario.id
-  permisosSeleccionados.value = usuario.permisos || []
+
+  permisosSeleccionados.value = await fetchPermisosUsuario(usuario.id)
+
   message.value = ''
   messageClass.value = ''
 }
