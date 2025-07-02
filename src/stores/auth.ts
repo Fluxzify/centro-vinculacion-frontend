@@ -1,11 +1,10 @@
 import { defineStore } from 'pinia'
 import { useCookie, useRuntimeConfig } from '#app'
 import { jwtDecode } from 'jwt-decode'
-
 type TokenPayload = {
   nombre: string
   userId: number
-  // Agrega más campos si tu token los tiene
+  exp?: number  // para validar expiración
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -73,12 +72,28 @@ export const useAuthStore = defineStore('auth', {
       this.nombre = null
     },
 
+    isTokenExpired(): boolean {
+      if (!this.token) return true
+      try {
+        const payload = jwtDecode<TokenPayload & { exp: number }>(this.token)
+        if (!payload.exp) return true
+        const expTime = payload.exp * 1000 // exp está en segundos
+        return Date.now() >= expTime
+      } catch {
+        return true
+      }
+    },
+
     restoreToken() {
       const tokenCookie = useCookie('token')
       if (tokenCookie.value && !this.token) {
-        this.token = tokenCookie.value
-        const payload = jwtDecode<TokenPayload>(tokenCookie.value)
-        this.nombre = payload.nombre
+        if (!this.isTokenExpired()) {
+          this.token = tokenCookie.value
+          const payload = jwtDecode<TokenPayload>(tokenCookie.value)
+          this.nombre = payload.nombre
+        } else {
+          this.logout()
+        }
       }
     }
   }
