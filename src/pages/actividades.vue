@@ -168,10 +168,10 @@
       <td class="border px-2 py-1">{{ actividad.creadoPorId }}</td>
       <td class="border px-2 py-1">{{ actividad.fechaCreacion?.slice(0,10) }}</td>
 
-     <td class="border px-2 py-1 text-center">
-  <div v-if="actividad.archivos && actividad.archivos.length > 0">
+   <td class="border px-2 py-1 text-center">
+  <div v-if="actividad.archivosFetched?.length">
     <ul class="list-disc text-left ml-4">
-      <li v-for="archivo in actividad.archivos" :key="archivo.id">
+      <li v-for="archivo in actividad.archivosFetched" :key="archivo.id">
         <a
           :href="`${config.public.API_BASE_URL}api/files/download/${archivo.ruta.split('/').pop()}`"
           :download="archivo.nombre"
@@ -262,15 +262,45 @@ function formatDate(dateStr) {
   return isNaN(d) ? '' : d.toISOString().split('T')[0]
 }
 
+async function fetchArchivosPorActividad(actividadId) {
+  try {
+    const archivos = await $fetch(`/api/files/${actividadId}`, {
+      baseURL: config.public.API_BASE_URL,
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    return archivos
+  } catch (error) {
+    console.error(`Error obteniendo archivos de actividad ${actividadId}:`, error)
+    return []
+  }
+}
+
 async function fetchAllData() {
   try {
-    console.log(actividades.value)
     const headers = { Authorization: `Bearer ${token}` }
-    actividades.value = await $fetch('/api/activities', { baseURL: config.public.API_BASE_URL, headers })
-    tiposActividad.value = await $fetch('/api/tipos-actividad', { baseURL: config.public.API_BASE_URL, headers })
-    socios.value = await $fetch('/api/socios', { baseURL: config.public.API_BASE_URL, headers })
-    proyectos.value = await $fetch('/api/proyectos', { baseURL: config.public.API_BASE_URL, headers })
-    lugares.value = await $fetch('/api/lugares', { baseURL: config.public.API_BASE_URL, headers })
+
+    const [actividadesBase, tipos, sociosBase, proyectosBase, lugaresBase] = await Promise.all([
+      $fetch('/api/activities', { baseURL: config.public.API_BASE_URL, headers }),
+      $fetch('/api/tipos-actividad', { baseURL: config.public.API_BASE_URL, headers }),
+      $fetch('/api/socios', { baseURL: config.public.API_BASE_URL, headers }),
+      $fetch('/api/proyectos', { baseURL: config.public.API_BASE_URL, headers }),
+      $fetch('/api/lugares', { baseURL: config.public.API_BASE_URL, headers })
+    ])
+
+    tiposActividad.value = tipos
+    socios.value = sociosBase
+    proyectos.value = proyectosBase
+    lugares.value = lugaresBase
+
+    // fetch archivos por cada actividad
+    const actividadesConArchivos = await Promise.all(
+      actividadesBase.map(async (actividad) => {
+        const archivos = await fetchArchivosPorActividad(actividad.id)
+        return { ...actividad, archivosFetched: archivos }
+      })
+    )
+
+    actividades.value = actividadesConArchivos
   } catch (e) {
     console.error('Error cargando datos:', e)
     message.value = 'Error cargando datos iniciales'
@@ -299,9 +329,7 @@ function resetForm() {
   if (fileInput.value) fileInput.value.value = ''
 }
 
-// ✅ Método para editar actividad
 async function startEdit(actividad) {
-  console.log(actividad.citas)
   form.value = {
     nombre: actividad.nombre,
     tipo_actividad_id: actividad.tipoActividadId,
@@ -321,7 +349,6 @@ async function startEdit(actividad) {
   messageClass.value = ''
 }
 
-// ✅ Método para cancelar/desactivar actividad
 async function deactivateActividad(id) {
   const motivo = window.prompt('Por favor, proporciona un motivo para la cancelación:')
 
@@ -358,39 +385,37 @@ async function deactivateActividad(id) {
   }
 }
 
-
 async function onSubmit() {
-
   if (!editId.value) {
-  if (!form.value.fecha_unica_cita || !form.value.lugar_id_cita || !form.value.hora_inicio_cita) {
-    message.value = 'Lugar, Fecha y Hora Inicio son obligatorios para la cita.';
-    messageClass.value = 'bg-red-100 text-red-800';
-    return;
+    if (!form.value.fecha_unica_cita || !form.value.lugar_id_cita || !form.value.hora_inicio_cita) {
+      message.value = 'Lugar, Fecha y Hora Inicio son obligatorios para la cita.'
+      messageClass.value = 'bg-red-100 text-red-800'
+      return
+    }
+
+    if (form.value.periodicidad === 'Periódica' && !form.value.fecha_fin_periodica_citas) {
+      message.value = 'Debes indicar una fecha fin para citas periódicas.'
+      messageClass.value = 'bg-red-100 text-red-800'
+      return
+    }
+
+    if (
+      form.value.periodicidad === 'Periódica' &&
+      new Date(form.value.fecha_unica_cita) > new Date(form.value.fecha_fin_periodica_citas)
+    ) {
+      message.value = 'La fecha de fin no puede ser anterior a la fecha de inicio.'
+      messageClass.value = 'bg-red-100 text-red-800'
+      return
+    }
+
+    if (!userId.value) {
+      message.value = 'No se pudo obtener el usuario creador. Inicia sesión nuevamente.'
+      messageClass.value = 'bg-red-100 text-red-800'
+      return
+    }
   }
 
-  if (form.value.periodicidad === 'Periódica' && !form.value.fecha_fin_periodica_citas) {
-    message.value = 'Debes indicar una fecha fin para citas periódicas.';
-    messageClass.value = 'bg-red-100 text-red-800';
-    return;
-  }
-
-  if (
-    form.value.periodicidad === 'Periódica' &&
-    new Date(form.value.fecha_unica_cita) > new Date(form.value.fecha_fin_periodica_citas)
-  ) {
-    message.value = 'La fecha de fin no puede ser anterior a la fecha de inicio.';
-    messageClass.value = 'bg-red-100 text-red-800';
-    return;
-  }
-
-  if (!userId.value) {
-    message.value = 'No se pudo obtener el usuario creador. Inicia sesión nuevamente.';
-    messageClass.value = 'bg-red-100 text-red-800';
-    return;
-  }
-}
   try {
-
     const actividadPayload = {
       nombre: form.value.nombre,
       tipoActividadId: Number(form.value.tipo_actividad_id),
@@ -406,7 +431,6 @@ async function onSubmit() {
     let actividadResult
 
     if (editId.value) {
-      // Editar actividad existente
       actividadResult = await $fetch(`/api/activities/${editId.value}`, {
         method: 'PUT',
         baseURL: config.public.API_BASE_URL,
@@ -414,53 +438,50 @@ async function onSubmit() {
         body: actividadPayload
       })
     } else {
-  const res = await $fetch('/api/activities', {
-    method: 'POST',
-    baseURL: config.public.API_BASE_URL,
-    headers: { Authorization: `Bearer ${token}` },
-    body: actividadPayload
-  })
-  actividadResult = res.actividad
-
-  // 🔐 Validación adicional
-  if (!actividadResult || !actividadResult.id || isNaN(actividadResult.id)) {
-    throw new Error('La actividad no se creó correctamente. ID inválido.')
-  }
-}
-if (!editId.value && actividadResult?.id) {
-  const citaPayload = {
-    actividadId: actividadResult.id,
-    lugarId: Number(form.value.lugar_id_cita),
-    fecha: form.value.fecha_unica_cita,
-    horaInicio: form.value.hora_inicio_cita,
-    horaFin: form.value.hora_fin_cita || null,
-    creadoPorId: userId.value,
-    periodicidadTipo: form.value.periodicidad
-  }
-
-  if (form.value.periodicidad === 'Puntual') {
-    await $fetch('/api/citas', {
-      method: 'POST',
-      baseURL: config.public.API_BASE_URL,
-      headers: { Authorization: `Bearer ${token}` },
-      body: citaPayload
-    })
-  } else if (form.value.periodicidad === 'Periódica') {
-    await $fetch('/api/citas', {
-      method: 'POST',
-      baseURL: config.public.API_BASE_URL,
-      headers: { Authorization: `Bearer ${token}` },
-      body: {
-        ...citaPayload,
-        fechaInicioPeriodica: form.value.fecha_unica_cita,
-        fechaFinPeriodica: form.value.fecha_fin_periodica_citas
+      const res = await $fetch('/api/activities', {
+        method: 'POST',
+        baseURL: config.public.API_BASE_URL,
+        headers: { Authorization: `Bearer ${token}` },
+        body: actividadPayload
+      })
+      actividadResult = res.actividad
+      if (!actividadResult?.id || isNaN(actividadResult.id)) {
+        throw new Error('La actividad no se creó correctamente. ID inválido.')
       }
-    })
-  }
-}
+    }
 
+    if (!editId.value && actividadResult?.id) {
+      const citaPayload = {
+        actividadId: actividadResult.id,
+        lugarId: Number(form.value.lugar_id_cita),
+        fecha: form.value.fecha_unica_cita,
+        horaInicio: form.value.hora_inicio_cita,
+        horaFin: form.value.hora_fin_cita || null,
+        creadoPorId: userId.value,
+        periodicidadTipo: form.value.periodicidad
+      }
 
-    // Subir archivos si hay alguno cargado
+      if (form.value.periodicidad === 'Puntual') {
+        await $fetch('/api/citas', {
+          method: 'POST',
+          baseURL: config.public.API_BASE_URL,
+          headers: { Authorization: `Bearer ${token}` },
+          body: citaPayload
+        })
+      } else if (form.value.periodicidad === 'Periódica') {
+        await $fetch('/api/citas', {
+          method: 'POST',
+          baseURL: config.public.API_BASE_URL,
+          headers: { Authorization: `Bearer ${token}` },
+          body: {
+            ...citaPayload,
+            fechaInicioPeriodica: form.value.fecha_unica_cita,
+            fechaFinPeriodica: form.value.fecha_fin_periodica_citas
+          }
+        })
+      }
+    }
+
     if (fileInput.value && fileInput.value.files.length > 0) {
       const formData = new FormData()
       for (const file of fileInput.value.files) {
@@ -481,8 +502,7 @@ if (!editId.value && actividadResult?.id) {
       }
 
       const uploadData = await uploadRes.json()
-
-      message.value = uploadData.mensaje || uploadData.message || 'Archivo(s) adjuntado(s) exitosamente'
+      message.value = uploadData.mensaje || 'Archivo(s) adjuntado(s) exitosamente'
       messageClass.value = 'bg-green-100 text-green-800'
     } else {
       message.value = 'Actividad guardada correctamente'
@@ -494,17 +514,14 @@ if (!editId.value && actividadResult?.id) {
       fetchAllData()
     }, 2000)
 
-    await fetchAllData()
-
   } catch (error) {
     console.error('Error al enviar:', error)
     message.value = error.message || 'Error en la operación'
     messageClass.value = 'bg-red-100 text-red-800'
   }
 }
-
-
 </script>
+
 
 
 <style>
