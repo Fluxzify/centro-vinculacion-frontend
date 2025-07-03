@@ -168,21 +168,23 @@
       <td class="border px-2 py-1">{{ actividad.creadoPorId }}</td>
       <td class="border px-2 py-1">{{ actividad.fechaCreacion?.slice(0,10) }}</td>
 
-      <td class="border px-2 py-1 text-center">
-        <div v-if="actividad.archivos && actividad.archivos.length > 0">
-          <div v-for="archivo in actividad.archivos" :key="archivo.id" class="mb-1">
-            <a
-              :href="`${config.public.API_BASE_URL}api/files/download/${archivo.ruta.split('/').pop()}`"
-              :download="archivo.nombre"
-              class="text-blue-600 hover:underline"
-              target="_blank"
-            >
-              📎 {{ archivo.nombre }}
-            </a>
-          </div>
-        </div>
-        <span v-else class="text-gray-400">Sin archivos</span>
-      </td>
+     <td class="border px-2 py-1 text-center">
+  <div v-if="actividad.archivos && actividad.archivos.length > 0">
+    <ul class="list-disc text-left ml-4">
+      <li v-for="archivo in actividad.archivos" :key="archivo.id">
+        <a
+          :href="`${config.public.API_BASE_URL}api/files/download/${archivo.ruta.split('/').pop()}`"
+          :download="archivo.nombre"
+          class="text-blue-600 hover:underline"
+          target="_blank"
+        >
+          {{ archivo.nombre }}
+        </a>
+      </li>
+    </ul>
+  </div>
+  <span v-else class="text-gray-400">Sin archivos</span>
+</td>
 
       <td class="border px-2 py-1 text-center space-x-1">
         <button @click="startEdit(actividad)" class="text-blue-600 hover:underline">Editar</button>
