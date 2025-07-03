@@ -78,6 +78,13 @@
             >
               Lugares
             </NuxtLink>
+               <NuxtLink
+              to="/usuarios"
+              class="block px-6 py-3 hover:bg-santotomasgreen hover:text-white"
+              @click="closeDropdown"
+            >
+              Usuarios
+            </NuxtLink>
           </div>
         </div>
 
